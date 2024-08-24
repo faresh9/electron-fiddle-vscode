@@ -1,36 +1,39 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
+const path = require('path');
+const fs = require('fs');
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-
-/**
- * @param {vscode.ExtensionContext} context
- */
 function activate(context) {
+    console.log('Your extension "electron-fiddle-vscode" is now active!');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "electron-fiddle-vscode" is now active!');
+    const disposable = vscode.commands.registerCommand('electron-fiddle-vscode.helloWorld', function () {
+        const panel = vscode.window.createWebviewPanel(
+            'reactApp', // Identifies the type of the webview. Used internally
+            'React App', // Title of the panel displayed to the user
+            vscode.ViewColumn.One, // Editor column to show the new webview panel in
+            {
+                enableScripts: true,
+                localResourceRoots: [
+                    vscode.Uri.file(path.join(context.extensionPath, 'client', 'build'))
+                ]
+            } // Webview options. More on these later.
+        );
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('electron-fiddle-vscode.helloWorld', function () {
-		// The code you place here will be executed every time your command is executed
+        const appPath = path.join(context.extensionPath, 'client', 'build');
+        const indexPath = vscode.Uri.file(path.join(appPath, 'index.html'));
 
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from electron-fiddle-vscode!');
-	});
+        const indexContent = fs.readFileSync(indexPath.fsPath, 'utf8');
+        const fixedContent = indexContent
+            .replace(/(href|src)="\//g, `$1="${panel.webview.asWebviewUri(vscode.Uri.file(appPath))}/`);
 
-	context.subscriptions.push(disposable);
+        panel.webview.html = fixedContent;
+    });
+
+    context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
 function deactivate() {}
 
 module.exports = {
-	activate,
-	deactivate
-}
+    activate,
+    deactivate
+};
